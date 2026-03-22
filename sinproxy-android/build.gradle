@@ -1,0 +1,42 @@
+plugins {
+    id 'java-library'
+}
+
+group 'com.sinproxy.android'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    // Bouncy Castle for Certificate Generation
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.77'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.77'
+    
+    // Android stubs for logging (if running in local JVM)
+    compileOnly 'com.google.android:android:4.1.1.4'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// Task to create a "Fat JAR" with Bouncy Castle included
+task shadowJar(type: Jar) {
+    archiveClassifier = 'all'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+    
+    manifest {
+        attributes(
+            'Implementation-Title': 'SINproxy Android Library',
+            'Implementation-Version': version,
+            'Main-Class': 'com.sinproxy.android.desktop.SINDesktopApp'
+        )
+    }
+}

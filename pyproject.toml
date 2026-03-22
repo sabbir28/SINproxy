@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sinproxy"
+version = "1.0.0"
+description = "A professional SNI Proxy and Bug Tester"
+authors = [
+    {name = "Antigravity"}
+]
+dependencies = [
+    "pyOpenSSL",
+]
+requires-python = ">=3.8"
+
+[project.scripts]
+sinproxy = "sinproxy.cli:main"
