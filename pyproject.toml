@@ -16,3 +16,7 @@ requires-python = ">=3.8"
 
 [project.scripts]
 sinproxy = "sinproxy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sinproxy*"]
+exclude = ["certs*", "tests*", "docs*"]

@@ -38,8 +38,10 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
       - name: Build AAR
-        run: cd sinproxy-android && ./gradlew assembleRelease || ./gradlew build
+        run: cd sinproxy-android && gradle assembleRelease || gradle build
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -58,11 +60,18 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
       - name: Build ShadowJar (Linux/Generic)
-        run: cd sinproxy-android && ./gradlew shadowJar
-      - name: Build Windows EXE (jpackage)
         run: |
-          $VERSION = (Get-Content sinproxy-android/build.gradle | Select-String "version '([\d\.]+)'").Matches.Groups[1].Value
+          cd sinproxy-android
+          gradle shadowJar
+      - name: Build Windows EXE (jpackage)
+        shell: pwsh
+        run: |
+          $GRADLE_FILE = "sinproxy-android/build.gradle"
+          $VERSION = (Get-Content $GRADLE_FILE | Select-String "version '([\d\.]+)'").Matches.Groups[1].Value
+          $JAR_PATH = "sinproxy-android/build/libs/sinproxy-android-all.jar"
           jpackage --input sinproxy-android/build/libs --name SINproxy --main-jar sinproxy-android-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
       - name: Upload Desktop Artifacts
         uses: actions/upload-artifact@v4
