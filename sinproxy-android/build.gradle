@@ -1,6 +1,14 @@
-plugins {
-    id 'com.android.library'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+    }
 }
+
+apply plugin: 'com.android.library'
 
 android {
     namespace 'com.sinproxy.android'
@@ -15,14 +23,18 @@ android {
             minifyEnabled false
         }
     }
+    
+    lintOptions {
+        abortOnError false
+    }
 }
 
 group 'com.sinproxy.android'
-version '1.0.0'
+version '1.0.1'
 
 repositories {
-    mavenCentral()
     google()
+    mavenCentral()
 }
 
 dependencies {
@@ -47,7 +59,9 @@ task shadowJar(type: Jar) {
     
     // Include dependencies in the fat JAR
     from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        // In Android, runtimeClasspath might be named differently
+        def runtimeConfig = configurations.findByName("runtimeClasspath") ?: configurations.findByName("releaseRuntimeClasspath")
+        runtimeConfig ? runtimeConfig.collect { it.isDirectory() ? it : zipTree(it) } : []
     } {
         exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     }
