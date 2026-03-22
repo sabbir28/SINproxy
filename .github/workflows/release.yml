@@ -1,0 +1,95 @@
+name: Release SINproxy
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  python-build:
+    name: Build Python Wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install build
+        run: pip install build
+      - name: Build wheel
+        run: python -m build
+      - name: Upload Python Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinproxy-python-wheel
+          path: dist/*.whl
+
+  android-build:
+    name: Build Android AAR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Build AAR
+        run: cd sinproxy-android && ./gradlew assembleRelease || ./gradlew build
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinproxy-android-aar
+          path: sinproxy-android/build/outputs/aar/*.aar
+
+  desktop-build:
+    name: Build Desktop Artifacts (JAR & EXE)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      - name: Build ShadowJar (Linux/Generic)
+        run: cd sinproxy-android && ./gradlew shadowJar
+      - name: Build Windows EXE (jpackage)
+        run: |
+          $VERSION = (Get-Content sinproxy-android/build.gradle | Select-String "version '([\d\.]+)'").Matches.Groups[1].Value
+          jpackage --input sinproxy-android/build/libs --name SINproxy --main-jar sinproxy-android-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinproxy-desktop
+          path: |
+            sinproxy-android/build/libs/*-all.jar
+            SINproxy*.exe
+
+  create-release:
+    name: Create GitHub Release
+    needs: [python-build, android-build, desktop-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Display structure of downloaded artifacts
+        run: ls -R artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/sinproxy-python-wheel/*.whl
+            artifacts/sinproxy-android-aar/*.aar
+            artifacts/sinproxy-desktop/*-all.jar
+            artifacts/sinproxy-desktop/*.exe
+          generate_release_notes: true

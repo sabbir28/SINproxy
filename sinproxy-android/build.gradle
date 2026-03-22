@@ -1,5 +1,20 @@
 plugins {
-    id 'java-library'
+    id 'com.android.library'
+}
+
+android {
+    namespace 'com.sinproxy.android'
+    compileSdk 34
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
 }
 
 group 'com.sinproxy.android'
@@ -19,22 +34,25 @@ dependencies {
     compileOnly 'com.google.android:android:4.1.1.4'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-// Task to create a "Fat JAR" with Bouncy Castle included
+// Custom task to create a "Fat JAR" for Desktop (Windows/Linux)
 task shadowJar(type: Jar) {
     archiveClassifier = 'all'
+    
+    from {
+        // This is a bit hacky for Android projects, but works for pure Java sources
+        android.sourceSets.main.java.srcDirs.collect { it }
+    }
+    
+    // Include dependencies in the fat JAR
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     }
-    with jar
-    
+
     manifest {
         attributes(
-            'Implementation-Title': 'SINproxy Android Library',
+            'Implementation-Title': 'SINproxy Desktop',
             'Implementation-Version': version,
             'Main-Class': 'com.sinproxy.android.desktop.SINDesktopApp'
         )
