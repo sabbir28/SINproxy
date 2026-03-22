@@ -1,25 +1,47 @@
 package com.sinproxy.android.utils;
 
 /**
- * Platform-agnostic logging for SINproxy Desktop
+ * Platform-agnostic logging for SINproxy Desktop with GUI listener support.
  */
 public class SINLog {
     private static final String TAG = "SINproxy";
 
+    public interface LogListener {
+        void onLog(String message);
+    }
+
+    private static LogListener listener;
+
+    public static void setListener(LogListener l) {
+        listener = l;
+    }
+
     public static void i(String message) {
-        System.out.println("[INFO] " + TAG + ": " + message);
+        String log = "[INFO] " + TAG + ": " + message;
+        System.out.println(log);
+        if (listener != null) listener.onLog(log);
     }
 
     public static void e(String message, Throwable t) {
-        System.err.println("[ERROR] " + TAG + ": " + message);
-        if (t != null) t.printStackTrace();
+        String log = "[ERROR] " + TAG + ": " + message;
+        System.err.println(log);
+        if (t != null) {
+            t.printStackTrace();
+            if (listener != null) listener.onLog(log + " (See console for stacktrace)");
+        } else {
+            if (listener != null) listener.onLog(log);
+        }
     }
 
     public static void d(String message) {
-        System.out.println("[DEBUG] " + TAG + ": " + message);
+        String log = "[DEBUG] " + TAG + ": " + message;
+        System.out.println(log);
+        if (listener != null) listener.onLog(log);
     }
 
     public static void w(String message) {
-        System.out.println("[WARN] " + TAG + ": " + message);
+        String log = "[WARN] " + TAG + ": " + message;
+        System.out.println(log);
+        if (listener != null) listener.onLog(log);
     }
 }

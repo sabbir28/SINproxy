@@ -13,6 +13,12 @@ dependencies {
     // Bouncy Castle for Certificate Generation
     implementation 'org.bouncycastle:bcprov-jdk18on:1.77'
     implementation 'org.bouncycastle:bcpkix-jdk18on:1.77'
+    
+    // Modern UI: FlatLaf
+    implementation 'com.formdev:flatlaf:3.4.1'
+    
+    // Network: OkHttp for downloads
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
 
 java {
