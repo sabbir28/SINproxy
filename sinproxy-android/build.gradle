@@ -52,6 +52,8 @@ task shadowJar(type: Jar) {
     archiveVersion = ''
     archiveClassifier = 'all'
     
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
     from {
         // This is a bit hacky for Android projects, but works for pure Java sources
         android.sourceSets.main.java.srcDirs.collect { it }

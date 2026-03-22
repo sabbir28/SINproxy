@@ -26,8 +26,12 @@ task shadowJar(type: Jar) {
     archiveVersion = ''
     archiveClassifier = 'all'
     
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     }
     with jar
     
