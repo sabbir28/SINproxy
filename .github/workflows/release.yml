@@ -2,14 +2,67 @@ name: Release SINproxy
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  auto-bump:
+    name: Auto-Bump Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      bumped: ${{ steps.check.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for changes & Bump
+        id: check
+        run: |
+          # 1. Get current version
+          VERSION=$(grep -oP 'version = "\K[\d\.]+' pyproject.toml)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          
+          echo "Current Version: $VERSION"
+          echo "Last Tag: $LAST_TAG"
+          
+          # 2. Check for changes in core directories
+          if git diff --quiet $LAST_TAG HEAD -- sinproxy/ sinproxy-android/; then
+            echo "No core changes detected since $LAST_TAG. Skipping bump."
+            echo "bumped=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # 3. Increment patch version
+          BASE=$(echo $VERSION | cut -d. -f1-2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          NEW_VERSION="$BASE.$((PATCH + 1))"
+          echo "New Version: $NEW_VERSION"
+          
+          # 4. Update files
+          sed -i "s/version = \"$VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
+          sed -i "s/version '$VERSION'/version '$NEW_VERSION'/" sinproxy-android/build.gradle
+          
+          # 5. Commit & Tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml sinproxy-android/build.gradle
+          git commit -m "chore: release v$NEW_VERSION [skip ci]"
+          git tag "v$NEW_VERSION"
+          git push origin main --tags
+          
+          echo "bumped=true" >> $GITHUB_OUTPUT
+
   python-build:
     name: Build Python Wheel
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -29,6 +82,7 @@ jobs:
   android-build:
     name: Build Android AAR
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -51,6 +105,7 @@ jobs:
   desktop-build:
     name: Build Desktop Artifacts (JAR & EXE)
     runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -84,6 +139,7 @@ jobs:
     name: Create GitHub Release
     needs: [python-build, android-build, desktop-build]
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
