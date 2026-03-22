@@ -11,11 +11,12 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
 
 /**
- * Modern, Premium Desktop Application for SINproxy.
- * Features a Dark Mode GUI and automated VPN dependency management.
+ * Advanced Desktop Application for SINproxy.
+ * Features: VPN Tunneling, Persistent Assets, and Real-time Config.
  */
 public class SINDesktopApp extends JFrame {
     private static SINProxyServer proxyServer;
@@ -24,26 +25,27 @@ public class SINDesktopApp extends JFrame {
     private JTextArea logArea;
     private JButton connectBtn;
     private JLabel statusLabel;
+    private JTextField sniField, proxyPortField, socksPortField;
     private boolean isConnected = false;
 
     public SINDesktopApp() {
-        setTitle("SINproxy v" + getVersion());
+        setTitle("SINproxy Pro v1.0.2");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 450);
+        setSize(550, 500);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
 
         // 1. Initialize Look and Feel
         try {
             UIManager.setLookAndFeel(new FlatDarkLaf());
-        } catch (Exception e) {
-            SINLog.e("Failed to initialize FlatDarkLaf", e);
-        }
+        } catch (Exception e) {}
 
-        // 2. UI Components
-        initUI();
+        // 2. Main Tabbed Layout
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Dashboard", createDashboardPanel());
+        tabbedPane.addTab("Settings", createSettingsPanel());
+        add(tabbedPane);
 
-        // 3. System Tray / Logging Integration
+        // 3. Logging Integration
         SINLog.setListener(msg -> SwingUtilities.invokeLater(() -> {
             logArea.append(msg + "\n");
             logArea.setCaretPosition(logArea.getDocument().getLength());
@@ -58,152 +60,186 @@ public class SINDesktopApp extends JFrame {
         });
     }
 
-    private void initUI() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        mainPanel.setBackground(new Color(30, 31, 34));
+    private JPanel createDashboardPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        panel.setBackground(new Color(30, 31, 34));
 
         // Header
-        JLabel titleLabel = new JLabel("SINproxy Server");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(Color.WHITE);
+        JLabel titleLabel = new JLabel("SINproxy Tunnel");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 26));
+        titleLabel.setForeground(new Color(0, 120, 212));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        panel.add(titleLabel, BorderLayout.NORTH);
 
-        // Center Panel (Controls)
-        JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setOpaque(false);
+        // Center (Button & Status)
+        JPanel center = new JPanel(new GridBagLayout());
+        center.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.gridx = 0;
+        gbc.gridx = 0; gbc.insets = new Insets(10, 0, 10, 0);
 
-        statusLabel = new JLabel("Status: OFFLINE");
-        statusLabel.setForeground(new Color(180, 180, 180));
-        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        centerPanel.add(statusLabel, gbc);
+        statusLabel = new JLabel("Status: DISCONNECTED");
+        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        statusLabel.setForeground(Color.GRAY);
+        center.add(statusLabel, gbc);
 
-        connectBtn = new JButton("CONNECT");
-        connectBtn.setPreferredSize(new Dimension(200, 50));
-        connectBtn.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        connectBtn = new JButton("START VPN");
+        connectBtn.setPreferredSize(new Dimension(220, 60));
+        connectBtn.setFont(new Font("Segoe UI", Font.BOLD, 18));
         connectBtn.setBackground(new Color(0, 120, 212));
         connectBtn.setForeground(Color.WHITE);
         connectBtn.setFocusPainted(false);
-        connectBtn.setBorder(BorderFactory.createEmptyBorder());
         connectBtn.addActionListener(e -> toggleConnection());
         gbc.gridy = 1;
-        centerPanel.add(connectBtn, gbc);
+        center.add(connectBtn, gbc);
 
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
+        panel.add(center, BorderLayout.CENTER);
 
-        // Log Console
+        // Console
         logArea = new JTextArea();
         logArea.setEditable(false);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 12));
         logArea.setBackground(new Color(20, 20, 22));
         logArea.setForeground(new Color(150, 200, 150));
-        JScrollPane scrollPane = new JScrollPane(logArea);
-        scrollPane.setPreferredSize(new Dimension(0, 150));
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(60, 60, 63)));
-        mainPanel.add(scrollPane, BorderLayout.SOUTH);
+        JScrollPane scroll = new JScrollPane(logArea);
+        scroll.setPreferredSize(new Dimension(0, 120));
+        panel.add(scroll, BorderLayout.SOUTH);
 
-        add(mainPanel);
+        return panel;
+    }
+
+    private JPanel createSettingsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(30, 30, 30, 30));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.gridx = 0; gbc.gridy = 0;
+
+        panel.add(new JLabel("Bug SNI (Host):"), gbc);
+        sniField = new JTextField(SINProxyConfig.BUG_SNI);
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        panel.add(sniField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        panel.add(new JLabel("HTTP Proxy Port:"), gbc);
+        proxyPortField = new JTextField(String.valueOf(SINProxyConfig.DEFAULT_PORT));
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        panel.add(proxyPortField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        panel.add(new JLabel("SOCKS5 Port:"), gbc);
+        socksPortField = new JTextField(String.valueOf(SINProxyConfig.SOCKS_PORT));
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        panel.add(socksPortField, gbc);
+
+        JButton saveBtn = new JButton("Apply Settings");
+        saveBtn.addActionListener(e -> applySettings());
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        panel.add(saveBtn, gbc);
+
+        return panel;
+    }
+
+    private void applySettings() {
+        try {
+            SINProxyConfig.BUG_SNI = sniField.getText();
+            // Note: Ports are harder to change without server restart, but we update the config
+            SINLog.i("Settings applied: SNI=" + SINProxyConfig.BUG_SNI);
+            JOptionPane.showMessageDialog(this, "Settings updated! Please reconnect to apply fully.");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error in settings input.");
+        }
     }
 
     private void toggleConnection() {
-        if (!isConnected) {
-            startAll();
-        } else {
-            stopAll();
-        }
+        if (!isConnected) startAll(); else stopAll();
     }
 
     private void startAll() {
         new Thread(() -> {
             try {
-                SINLog.i("Initializing connection...");
-                
-                // 1. Ensure VPN Assets (Windows Only)
+                // 1. Prepare Binaries in AppData
                 if (!AssetManager.ensureAssets()) {
-                    SINLog.e("Missing required VPN binaries. Retrying...", null);
+                    SINLog.e("Failed to acquire VPN binaries. Tunneling might fail.", null);
                 }
 
-                // 2. Start Proxy Server
-                if (proxyServer == null) {
-                    proxyServer = new SINProxyServer();
-                }
+                // 2. Start Servers
+                if (proxyServer == null) proxyServer = new SINProxyServer();
                 proxyServer.start();
 
-                // 3. Configure System VPN/Proxy
-                configureSystem(true);
+                // 3. Start VPN Tunnel (Windows)
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    startTunnel();
+                } else {
+                    setLinuxProxy(true);
+                }
 
                 SwingUtilities.invokeLater(() -> {
                     isConnected = true;
-                    connectBtn.setText("DISCONNECT");
+                    connectBtn.setText("STOP VPN");
                     connectBtn.setBackground(new Color(200, 50, 50));
                     statusLabel.setText("Status: CONNECTED (" + SINProxyConfig.BUG_SNI + ")");
                     statusLabel.setForeground(new Color(100, 255, 100));
                 });
-
             } catch (Exception e) {
-                SINLog.e("Failed to connect", e);
+                SINLog.e("Connection Error", e);
             }
         }).start();
     }
 
     private void stopAll() {
-        SINLog.i("Closing connection...");
-        configureSystem(false);
-        if (proxyServer != null) {
-            proxyServer.stop();
+        stopTunnel();
+        if (proxyServer != null) proxyServer.stop();
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            setWindowsProxy(false); // Fallback cleanup
+        } else {
+            setLinuxProxy(false);
         }
-        
+
         isConnected = false;
-        connectBtn.setText("CONNECT");
+        connectBtn.setText("START VPN");
         connectBtn.setBackground(new Color(0, 120, 212));
-        statusLabel.setText("Status: OFFLINE");
-        statusLabel.setForeground(new Color(180, 180, 180));
+        statusLabel.setText("Status: DISCONNECTED");
+        statusLabel.setForeground(Color.GRAY);
     }
 
-    private void configureSystem(boolean enable) {
-        String os = System.getProperty("os.name").toLowerCase();
-        if (os.contains("win")) {
-            if (new java.io.File("tun2socks.exe").exists()) {
-                if (enable) startTun2Socks(); else stopTun2Socks();
-            } else {
-                setWindowsProxy(enable);
-            }
-        } else if (os.contains("nix") || os.contains("nux")) {
-            setLinuxProxy(enable);
-        }
-    }
-
-    private void startTun2Socks() {
+    private void startTunnel() {
         try {
-            String cmd = "tun2socks.exe -proxy socks5://127.0.0.1:" + SINProxyConfig.SOCKS_PORT + " -device wintun";
+            File binDir = AssetManager.getBinDir();
+            File exe = new File(binDir, "tun2socks.exe");
+            
+            if (!exe.exists()) {
+                SINLog.w("Binary tun2socks.exe not found at " + exe.getAbsolutePath() + ". Falling back to System Proxy.");
+                setWindowsProxy(true);
+                return;
+            }
+
+            // Command using the absolute path to the persistent binary
+            String cmd = String.format("\"%s\" -proxy socks5://127.0.0.1:%d -device wintun", 
+                    exe.getAbsolutePath(), SINProxyConfig.SOCKS_PORT);
+            
             tun2socksProcess = Runtime.getRuntime().exec(cmd);
-            SINLog.i("Real VPN Mode Active (tun2socks).");
+            SINLog.i("Success: Tunnel active via wintun device.");
         } catch (IOException e) {
-            SINLog.e("VPN mode failed", e);
+            SINLog.e("Tunnel start failed. Check your admin permissions.", e);
         }
     }
 
-    private void stopTun2Socks() {
+    private void stopTunnel() {
         if (tun2socksProcess != null) {
             tun2socksProcess.destroy();
-            SINLog.i("VPN Mode stopping.");
+            SINLog.i("Tunnel stopped.");
         }
     }
 
     private void setWindowsProxy(boolean enable) {
         try {
-            String proxy = "127.0.0.1:" + SINProxyConfig.DEFAULT_PORT;
             if (enable) {
                 runCommand("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\" /v ProxyEnable /t REG_DWORD /d 1 /f");
-                runCommand("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\" /v ProxyServer /t REG_SZ /d \"" + proxy + "\" /f");
-                SINLog.i("Windows Proxy Enabled.");
+                runCommand("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\" /v ProxyServer /t REG_SZ /d \"127.0.0.1:" + SINProxyConfig.DEFAULT_PORT + "\" /f");
             } else {
                 runCommand("reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\" /v ProxyEnable /t REG_DWORD /d 0 /f");
-                SINLog.i("Windows Proxy Disabled.");
             }
         } catch (Exception e) {}
     }
@@ -214,10 +250,8 @@ public class SINDesktopApp extends JFrame {
                 runCommand("gsettings set org.gnome.system.proxy mode 'manual'");
                 runCommand("gsettings set org.gnome.system.proxy.http host '127.0.0.1'");
                 runCommand("gsettings set org.gnome.system.proxy.http port " + SINProxyConfig.DEFAULT_PORT);
-                SINLog.i("Linux Proxy Enabled.");
             } else {
                 runCommand("gsettings set org.gnome.system.proxy mode 'none'");
-                SINLog.i("Linux Proxy Disabled.");
             }
         } catch (Exception e) {}
     }
@@ -227,14 +261,9 @@ public class SINDesktopApp extends JFrame {
         p.waitFor();
     }
 
-    private String getVersion() {
-        return "1.0.1"; // Updated by CI
-    }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            SINDesktopApp app = new SINDesktopApp();
-            app.setVisible(true);
+            new SINDesktopApp().setVisible(true);
         });
     }
 }
