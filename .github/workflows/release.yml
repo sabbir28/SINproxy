@@ -52,7 +52,7 @@ jobs:
             NEW_VERSION="$BASE.$((PATCH + 1))"
             echo "Auto-bumping to $NEW_VERSION"
             
-            # 4. Update files locally
+            # 4. Update files locally (for the build jobs)
             sed -i "s/version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
             sed -i "s/version = '$CURRENT_VERSION'/version = '$NEW_VERSION'/" sinproxy-desktop/build.gradle
             sed -i "s/version = '$CURRENT_VERSION'/version = '$NEW_VERSION'/" sinproxy-android/build.gradle
@@ -159,9 +159,9 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.initialize.outputs.run_build == 'true'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
         with:
-          name: project-workspace
+          fetch-depth: 0
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -169,12 +169,23 @@ jobs:
       - name: Commit Bump (If Auto)
         if: needs.initialize.outputs.is_auto == 'true'
         run: |
+          VERSION="${{ needs.initialize.outputs.version }}"
+          # Apply the bump again on fresh checkout
+          CURRENT_VERSION=$(grep -oP 'version = "\K[\d\.]+' pyproject.toml)
+          sed -i "s/version = \"$CURRENT_VERSION\"/version = \"$VERSION\"/" pyproject.toml
+          sed -i "s/version = '$CURRENT_VERSION'/version = '$VERSION'/" sinproxy-desktop/build.gradle
+          sed -i "s/version = '$CURRENT_VERSION'/version = '$VERSION'/" sinproxy-android/build.gradle
+          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pyproject.toml sinproxy-android/build.gradle sinproxy-desktop/build.gradle
-          git commit -m "chore: release v${{ needs.initialize.outputs.version }}"
-          git tag v${{ needs.initialize.outputs.version }}
+          git commit -m "chore: release v$VERSION"
+          git tag "v$VERSION"
+          
+          # Using GITHUB_TOKEN for push
           git push origin main --tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
