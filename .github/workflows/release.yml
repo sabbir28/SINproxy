@@ -40,7 +40,7 @@ jobs:
             CURRENT_VERSION=$(grep -oP 'version = "\K[\d\.]+' pyproject.toml)
             LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
             
-            if git diff --quiet $LAST_TAG HEAD -- sinproxy/ sinproxy-android/; then
+            if git diff --quiet $LAST_TAG HEAD -- sinproxy/ sinproxy-android/ sinproxy-desktop/; then
               echo "No core changes detected since $LAST_TAG."
               echo "run_build=false" >> $GITHUB_OUTPUT
               exit 0
@@ -54,7 +54,8 @@ jobs:
             
             # 4. Update files locally
             sed -i "s/version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" pyproject.toml
-            sed -i "s/version '$CURRENT_VERSION'/version '$NEW_VERSION'/" sinproxy-android/build.gradle
+            sed -i "s/version = '$CURRENT_VERSION'/version = '$NEW_VERSION'/" sinproxy-desktop/build.gradle
+            sed -i "s/version = '$CURRENT_VERSION'/version = '$NEW_VERSION'/" sinproxy-android/build.gradle
             
             echo "run_build=true" >> $GITHUB_OUTPUT
             echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -137,19 +138,19 @@ jobs:
           gradle-version: 8.5
       - name: Build ShadowJar (Linux/Generic)
         run: |
-          cd sinproxy-android
+          cd sinproxy-desktop
           gradle shadowJar
       - name: Build Windows EXE (jpackage)
         shell: pwsh
         run: |
           $VERSION = "${{ needs.initialize.outputs.version }}"
-          jpackage --input sinproxy-android/build/libs --name SINproxy --main-jar sinproxy-desktop-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
+          jpackage --input sinproxy-desktop/build/libs --name SINproxy --main-jar sinproxy-desktop-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
       - name: Upload Desktop Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sinproxy-desktop
           path: |
-            sinproxy-android/build/libs/*-all.jar
+            sinproxy-desktop/build/libs/*-all.jar
             SINproxy*.exe
 
   publish:
@@ -170,8 +171,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml sinproxy-android/build.gradle
-          git commit -m "chore: release v${{ needs.initialize.outputs.version }} [skip ci]"
+          git add pyproject.toml sinproxy-android/build.gradle sinproxy-desktop/build.gradle
+          git commit -m "chore: release v${{ needs.initialize.outputs.version }}"
           git tag v${{ needs.initialize.outputs.version }}
           git push origin main --tags
       - name: Create GitHub Release
