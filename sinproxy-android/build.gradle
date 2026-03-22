@@ -36,6 +36,8 @@ dependencies {
 
 // Custom task to create a "Fat JAR" for Desktop (Windows/Linux)
 task shadowJar(type: Jar) {
+    archiveBaseName = 'sinproxy-desktop'
+    archiveVersion = ''
     archiveClassifier = 'all'
     
     from {

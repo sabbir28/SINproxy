@@ -71,8 +71,7 @@ jobs:
         run: |
           $GRADLE_FILE = "sinproxy-android/build.gradle"
           $VERSION = (Get-Content $GRADLE_FILE | Select-String "version '([\d\.]+)'").Matches.Groups[1].Value
-          $JAR_PATH = "sinproxy-android/build/libs/sinproxy-android-all.jar"
-          jpackage --input sinproxy-android/build/libs --name SINproxy --main-jar sinproxy-android-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
+          jpackage --input sinproxy-android/build/libs --name SINproxy --main-jar sinproxy-desktop-all.jar --main-class com.sinproxy.android.desktop.SINDesktopApp --type exe --app-version $VERSION --win-dir-chooser --win-shortcut --win-menu
       - name: Upload Desktop Artifacts
         uses: actions/upload-artifact@v4
         with:
